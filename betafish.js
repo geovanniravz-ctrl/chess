@@ -2,7 +2,6 @@
 // Modified 14.2.2023 to expose the best move function.
 // Modified 23.2.2023 to change the generic name and comment out searchcontroller logging
 // Modified 27.2.2023 to diable additional logging
-// Modified 2024 - weakened to ~1600 Elo (depth cap + evaluation noise)
 
 const betafishEngine = function() {
   /****************************\
@@ -1702,10 +1701,6 @@ const betafishEngine = function() {
 
     score = (mg_score * mg_phase + eg_score * eg_phase) / 24;
 
-    // Introduce random noise to mimic human inconsistency (Elo ~1600)
-    const EVAL_NOISE = 20; // centipawns
-    score += Math.floor(Math.random() * (2 * EVAL_NOISE + 1) - EVAL_NOISE);
-
     if (GameBoard.side == COLOURS.WHITE) {
       return score;
     } else {
@@ -2090,19 +2085,13 @@ const betafishEngine = function() {
     }
 
     SearchController.best = bestMove;
-    SearchController.score = bestScore;
     SearchController.thinking = false;
   }
 
   function getBestMove() {
-    // Cap search depth to simulate lower Elo (~1600)
-    SearchController.depth = 5; // was MAXDEPTH (64)
+    SearchController.depth = MAXDEPTH;
     SearchPosition();
     return SearchController.best;
-  }
-
-  function getScore() {
-    return SearchController.score;
   }
 
   /****************************\
@@ -2311,7 +2300,6 @@ const betafishEngine = function() {
     move: move,
     makeAIMove: makeAIMove,
     getBestMove: getBestMove,
-    getScore: getScore,
     reset: reset,
     gameStatus: gameStatus,
     setThinkingTime: setThinkingTime,
