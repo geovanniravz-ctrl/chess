@@ -2070,7 +2070,6 @@ const betafishEngine = function() {
         " nodes:" +
         SearchController.nodes;
 
-      SearchController.lastScore = bestScore;
       PvNum = GetPvLine(currentDepth);
       line += " Pv:";
       for (c = 0; c < PvNum; ++c) {
@@ -2092,7 +2091,7 @@ const betafishEngine = function() {
   function getBestMove() {
     SearchController.depth = MAXDEPTH;
     SearchPosition();
-    return { move: SearchController.best, score: SearchController.lastScore };
+    return SearchController.best;
   }
 
   /****************************\
