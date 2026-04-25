@@ -753,92 +753,179 @@ const vasara = function () {
 
 
     const css = `
+:root {
+    --vasara-bg: #121212;
+    --vasara-surface: #1e1e1e;
+    --vasara-primary: #e91e63;
+    --vasara-text: #ffffff;
+    --vasara-text-dim: #b0b0b0;
+    --vasara-accent: #ff4081;
+    --vasara-border: #333333;
+}
+
 .modal-window button,
-.modal-window input {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+.modal-window input,
+.modal-window select {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--vasara-surface);
+    color: var(--vasara-text);
+    border: 1px solid var(--vasara-border);
+    border-radius: 4px;
+    padding: 6px 10px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.modal-window button:hover {
+    background: var(--vasara-primary);
+    border-color: var(--vasara-primary);
+    cursor: pointer;
+    color: white;
 }
 
 .modal-window {
-    position        : fixed;
-    top             : 50%;
-    left            : 50%;
-    transform       : translate(-50%, -50%);
-    border          : 1px solid #ccc;
-    background-color: #fff;
-    z-index         : 1000;
-    box-shadow      : 0 2px 10px rgba(0, 0, 0, 0.1);
-    font-family     : system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-    overflow        : hidden;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 1px solid var(--vasara-border);
+    background: var(--vasara-bg);
+    color: var(--vasara-text);
+    z-index: 10000;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    font-family: 'Inter', system-ui, sans-serif;
+    overflow: hidden;
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
 }
 
 .modal-window-header {
-    display         : flex;
-    justify-content : space-between;
-    align-items     : center;
-    background-color: #f5f5f5;
-    padding         : 10px;
-    cursor          : move;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--vasara-surface);
+    padding: 12px 16px;
+    cursor: move;
+    border-bottom: 1px solid var(--vasara-border);
 }
 
 .modal-window-header-title {
     flex: 1;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--vasara-primary);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
 }
 
 .modal-window-header-buttons {
     display: flex;
+    gap: 8px;
 }
 
 .modal-window-header-button {
-    width        : 15px;
-    height       : 15px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
-    margin-left  : 5px;
-    cursor       : pointer;
+    cursor: pointer;
+    transition: transform 0.2s;
 }
 
-.ghost-button {
-    background-color: #ffcc00;
+.modal-window-header-button:hover {
+    transform: scale(1.2);
 }
 
-.close-button {
-    background-color: #ff4d4d;
-}
+.ghost-button { background-color: #ffb400; }
+.close-button { background-color: #ff5f56; }
 
 .modal-window-content {
-    padding   : 20px;
-    overflow-y: scroll;
-    overflow-x: hidden;
-    height    : 100%;
+    padding: 20px;
+    height: calc(100% - 48px);
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.modal-window-content::-webkit-scrollbar {
+    width: 6px;
+}
+.modal-window-content::-webkit-scrollbar-thumb {
+    background: var(--vasara-border);
+    border-radius: 10px;
+}
+
+.modal-window-content label {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--vasara-text-dim);
+    font-weight: 500;
+}
+
+/* TOGGLE SWITCH */
+.modal-window-content input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 44px;
+    height: 22px;
+    background: #333;
+    border-radius: 22px;
+    position: relative;
+    cursor: pointer;
+    border: none;
+    vertical-align: middle;
+    margin-bottom: 15px !important;
+    transition: background 0.3s;
+}
+
+.modal-window-content input[type="checkbox"]::before {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.modal-window-content input[type="checkbox"]:checked {
+    background: var(--vasara-primary);
+}
+
+.modal-window-content input[type="checkbox"]:checked::before {
+    left: 24px;
+}
+
+.modal-window-content input[type="number"],
+.modal-window-content input[type="text"],
+.modal-window-content select {
+    width: 100%;
+    margin-bottom: 15px;
+    background: #1a1a1a;
 }
 
 .modal-window-content button {
-    border          : none;
-    border-radius   : 15px;
-    background-color: #777;
-    cursor          : pointer;
+    width: 100%;
+    padding: 10px;
+    font-weight: 600;
+    margin-top: 10px;
+    background: var(--vasara-surface);
+    border: 1px solid var(--vasara-primary);
+    color: var(--vasara-primary);
+    border-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .modal-window-content button:hover {
-    background-color: #aaa;
+    background: var(--vasara-primary);
+    color: white;
+    box-shadow: 0 0 15px rgba(233, 30, 99, 0.4);
 }
 
-.modal-window-content button:active {
-    background-color: #ccc;
-}
-
-.modal-window-content input {
-    padding      : 8px, 1px;
-    border       : 1px solid #ccc;
-    border-radius: 4px;
-}
-
-.resizable {
-    resize: both;
-}
-
-.ghosted {
-    opacity: 0.4;
-}`;
+.resizable { resize: both; }
+.ghosted { opacity: 0.3; pointer-events: none; }`;
 
     injectCss(css);
 
