@@ -2090,6 +2090,7 @@ const betafishEngine = function() {
     }
 
     SearchController.best = bestMove;
+    SearchController.score = bestScore;
     SearchController.thinking = false;
   }
 
@@ -2098,6 +2099,10 @@ const betafishEngine = function() {
     SearchController.depth = 5; // was MAXDEPTH (64)
     SearchPosition();
     return SearchController.best;
+  }
+
+  function getScore() {
+    return SearchController.score;
   }
 
   /****************************\
@@ -2306,6 +2311,7 @@ const betafishEngine = function() {
     move: move,
     makeAIMove: makeAIMove,
     getBestMove: getBestMove,
+    getScore: getScore,
     reset: reset,
     gameStatus: gameStatus,
     setThinkingTime: setThinkingTime,
