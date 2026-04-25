@@ -2,6 +2,55 @@ const vasara = function () {
     const mousePosition = { x: 0, y: 0 };
     const mouseButtons = new Map();
 
+    const palettes = [
+        { name: "Golden Night", bg:"#1e1e24", surface:"#2a2a30", text:"#f0e6d2", accent:"#f5c518", accentH:"#ffdd57", border:"rgba(255,215,0,0.2)", shadow:"rgba(0,0,0,0.4)", rating:"#f5c518" },
+        { name: "Rose Twilight", bg:"#1e1b1e", surface:"#2b2329", text:"#f0dce0", accent:"#d88c9a", accentH:"#f0a6b3", border:"rgba(216,140,154,0.25)", shadow:"rgba(0,0,0,0.35)", rating:"#d88c9a" },
+        { name: "Ocean Mint", bg:"#1b2223", surface:"#253031", text:"#d4f0e0", accent:"#66d9a0", accentH:"#8ef2b5", border:"rgba(102,217,160,0.2)", shadow:"rgba(0,0,0,0.4)", rating:"#66d9a0" },
+        { name: "Lavender Dusk", bg:"#1f1b24", surface:"#2b2432", text:"#e4d2f0", accent:"#b48cd9", accentH:"#d0a5f0", border:"rgba(180,140,217,0.25)", shadow:"rgba(0,0,0,0.4)", rating:"#b48cd9" },
+        { name: "Copper Ember", bg:"#1e1c18", surface:"#2b261f", text:"#f0dcc2", accent:"#e08b5a", accentH:"#f5a97a", border:"rgba(224,139,90,0.3)", shadow:"rgba(0,0,0,0.45)", rating:"#e08b5a" },
+        { name: "Arctic Frost", bg:"#1a2026", surface:"#243039", text:"#cdeaf0", accent:"#5dc9e2", accentH:"#80dff5", border:"rgba(93,201,226,0.25)", shadow:"rgba(0,0,0,0.4)", rating:"#5dc9e2" },
+        { name: "Berry Wine", bg:"#1d1722", surface:"#29202e", text:"#f0d6e5", accent:"#c44b7a", accentH:"#e06698", border:"rgba(196,75,122,0.3)", shadow:"rgba(0,0,0,0.4)", rating:"#c44b7a" },
+        { name: "Forest Canopy", bg:"#181d16", surface:"#222b20", text:"#d9efcc", accent:"#7cb342", accentH:"#9ccc65", border:"rgba(124,179,66,0.25)", shadow:"rgba(0,0,0,0.5)", rating:"#7cb342" },
+        { name: "Slate Violet", bg:"#1b1e26", surface:"#252936", text:"#cfd6f0", accent:"#7182cc", accentH:"#95a5e0", border:"rgba(113,130,204,0.3)", shadow:"rgba(0,0,0,0.4)", rating:"#7182cc" },
+        { name: "Peach Velvet", bg:"#1e1a18", surface:"#2c2420", text:"#f5dfcf", accent:"#e09b7a", accentH:"#f5b79a", border:"rgba(224,155,122,0.3)", shadow:"rgba(0,0,0,0.45)", rating:"#e09b7a" },
+        { name: "Teal Shadow", bg:"#171e21", surface:"#212a2e", text:"#cde6e0", accent:"#4db6ac", accentH:"#70ccc4", border:"rgba(77,182,172,0.25)", shadow:"rgba(0,0,0,0.45)", rating:"#4db6ac" },
+        { name: "Crimson Silk", bg:"#1e1517", surface:"#2b1e21", text:"#f0ccd2", accent:"#c4505a", accentH:"#e06b75", border:"rgba(196,80,90,0.3)", shadow:"rgba(0,0,0,0.4)", rating:"#c4505a" },
+        { name: "Moss Stone", bg:"#1a1c15", surface:"#25281f", text:"#e4efc0", accent:"#9bae5b", accentH:"#bdcb78", border:"rgba(155,174,91,0.25)", shadow:"rgba(0,0,0,0.5)", rating:"#9bae5b" },
+        { name: "Skyline Blue", bg:"#171d2c", surface:"#21293d", text:"#cddef5", accent:"#5b8bd4", accentH:"#7da8f0", border:"rgba(91,139,212,0.3)", shadow:"rgba(0,0,0,0.4)", rating:"#5b8bd4" },
+        { name: "Sandstone Glow", bg:"#1c1a14", surface:"#27241b", text:"#f0e5cc", accent:"#d4a344", accentH:"#efc06a", border:"rgba(212,163,68,0.3)", shadow:"rgba(0,0,0,0.5)", rating:"#d4a344" },
+        { name: "Plum Velour", bg:"#1d1820", surface:"#29202e", text:"#e9d4f0", accent:"#9c50b5", accentH:"#c070d8", border:"rgba(156,80,181,0.3)", shadow:"rgba(0,0,0,0.4)", rating:"#9c50b5" },
+        { name: "Seafoam Dream", bg:"#1a2020", surface:"#242d2d", text:"#d0f0e8", accent:"#60bf9e", accentH:"#88e0c2", border:"rgba(96,191,158,0.25)", shadow:"rgba(0,0,0,0.4)", rating:"#60bf9e" },
+        { name: "Rustic Bronze", bg:"#1c1713", surface:"#29231d", text:"#f0d7ba", accent:"#bb7843", accentH:"#dd965a", border:"rgba(187,120,67,0.3)", shadow:"rgba(0,0,0,0.5)", rating:"#bb7843" },
+        { name: "Indigo Night", bg:"#181829", surface:"#232338", text:"#cfd6f5", accent:"#5b67c8", accentH:"#808de0", border:"rgba(91,103,200,0.3)", shadow:"rgba(0,0,0,0.4)", rating:"#5b67c8" },
+        { name: "Honey Amber", bg:"#1e1a10", surface:"#2c2619", text:"#f5e6c2", accent:"#e0ac3a", accentH:"#f5c760", border:"rgba(224,172,58,0.35)", shadow:"rgba(0,0,0,0.5)", rating:"#e0ac3a" }
+    ];
+
+    /**
+     * @description Set the UI theme
+     * @param {number|string} index Index or name of the palette
+     */
+    this.setTheme = (index) => {
+        let palette = (typeof index === 'number') ? palettes[index] : palettes.find(p => p.name === index);
+        if (!palette) palette = palettes[0];
+        
+        const root = document.documentElement;
+        root.style.setProperty('--vasara-bg', palette.bg);
+        root.style.setProperty('--vasara-surface', palette.surface);
+        root.style.setProperty('--vasara-text', palette.text);
+        root.style.setProperty('--vasara-text-secondary', palette.text + '99');
+        root.style.setProperty('--vasara-accent', palette.accent);
+        root.style.setProperty('--vasara-accent-hover', palette.accentH);
+        root.style.setProperty('--vasara-border', palette.border);
+        root.style.setProperty('--vasara-shadow', palette.shadow);
+        root.style.setProperty('--vasara-rating', palette.rating);
+    };
+
+    /**
+     * @description Get all available theme names
+     * @returns {string[]}
+     */
+    this.getThemes = () => palettes.map(p => p.name);
+
     document.addEventListener('mousemove', (event) => {
         mousePosition.x = event.clientX;
         mousePosition.y = event.clientY;
@@ -18,44 +67,27 @@ const vasara = function () {
     const keyboardKeys = new Map();
     const globalKeybindings = new Map();
 
-    /**
-     * @description Registers a keybinding
-     * @param {string} keyCombo The key combination to bind to
-     * @param {(event: KeyboardEvent) => void} func The function to call when the key combination is pressed
-     */
     this.registerKeybinding = (keyCombo, func) => {
         keyCombo = keyCombo.split('+').sort().join('+').toLowerCase();
-
         if (!globalKeybindings.has(keyCombo)) globalKeybindings.set(keyCombo, []);
-
         globalKeybindings.get(keyCombo).push(func);
     }
 
     document.addEventListener('keydown', (event) => {
         keyboardKeys.set(event.key.toLowerCase(), true);
-
         const keyCombo = [...keyboardKeys.keys()].sort().join('+').toLowerCase();
         const funcs = globalKeybindings.get(keyCombo) || [];
-
         for (const key of Object.keys(config)) {
             if (config[key].type === 'hotkey' && config[key].value.toLowerCase() === keyCombo) {
                 funcs.push(config[key].action);
             }
         }
-
         if (funcs?.length) funcs.forEach(f => f(event));
     });
 
-    /**
-     * @description Deregisters a keybinding
-     * @param {string} keyCombo The key combination to deregister
-     * @param {Function} func The function to deregister
-     */
     this.deregisterKeybinding = (keyCombo, func) => {
         keyCombo = keyCombo.split('+').sort().join('+').toLowerCase();
-
         if (!globalKeybindings.has(keyCombo)) return;
-
         const funcs = globalKeybindings.get(keyCombo);
         if (funcs.length === 1) globalKeybindings.delete(keyCombo);
         else {
@@ -79,7 +111,6 @@ const vasara = function () {
     const persistentStateStorageKey = 'vasara-storedpersistentstate';
     const savePersistentState = () => {
         const state = [];
-
         pruneModals();
         for (let modal of modals) {
             state.push({
@@ -96,28 +127,19 @@ const vasara = function () {
                 unique: modal.options.unique,
                 tag: modal.options.tag,
                 id: modal.options.id,
-
                 isVasaraConfig: modal.isVasaraConfig,
             });
         }
-
         localStorage.setItem(persistentStateStorageKey, JSON.stringify(state));
-
         this.saveConfig();
     }
 
-    /**
-     * @description Call this on load to enable the behavior of trying to persist the state of modal windows between page loads
-     */
     this.loadPersistentState = () => {
         settings.persistenceEnabled = true;
-
-        const state = JSON.parse(localStorage.getItem(persistentStateStorageKey));
-
+        const stateStr = localStorage.getItem(persistentStateStorageKey);
         this.loadConfig();
-
-        if (!state);
-
+        if (!stateStr) return;
+        const state = JSON.parse(stateStr);
         for (const options of state) {
             if (options.isVasaraConfig) {
                 this.generateConfigWindow(options);
@@ -141,7 +163,7 @@ const vasara = function () {
             case 'color':
                 return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value);
             case 'hotkey':
-                return /^(?:Ctrl|Alt|Shift|Meta|\b[a-zA-Z]\b)(?:\+(?:Ctrl|Alt|Shift|Meta|\b[a-zA-Z]\b))*$/.test(value);
+                return true;
             case 'number':
                 return !isNaN(value);
             default:
@@ -149,35 +171,18 @@ const vasara = function () {
         }
     }
 
-    /**
-     * @description Query the value of a config key
-     * @param {string} key
-     * @returns {any} The stored value
-     */
     this.queryConfigKey = (key) => {
-        if (!config[key]) return console.warn('Key does not exist!');
+        if (!config[key]) return null;
         return config[key].value;
     }
 
-    /**
-     * @description Set a value 
-     * @param {string} key 
-     * @param {string} value 
-     * @param {boolean} triggerCallback 
-     * @param {boolean} triggerSave 
-     * @returns 
-     */
     this.setConfigValue = (key, value, triggerCallback = true, triggerSave = false) => {
-        if (!config[key]) return console.warn(`Tried to set the value of unregistered key ${key}`);
-
-        if (!validateConfigValue(config[key].type, value)) return console.error(`Tried to give ${config[key].type} '${key}' an invalid value of: `, value);
-
+        if (!config[key]) return;
+        if (!validateConfigValue(config[key].type, value)) return;
         config[key].value = value;
-
         if (triggerCallback && typeof config[key].callback === 'function') {
             config[key].callback(value);
         }
-
         if (triggerSave) {
             this.saveConfig();
         }
@@ -185,65 +190,44 @@ const vasara = function () {
 
     const serializeConfig = (pretty = false) => {
         const object = {};
-
         for (const key of Object.keys(config)) {
             object[key] = String(config[key].value);
         }
-
         return JSON.stringify(object, null, pretty ? 4 : null);
     }
 
-    /**
-     * @description Save the config to localStorage
-     */
     this.saveConfig = () => {
         window.localStorage.setItem(configLocalStorageKey, serializeConfig());
     }
 
     const deserializeConfig = (str, triggerCallbacks = false) => {
+        if (!str) return;
         const object = JSON.parse(str);
-        if (!object) return console.warn(`No object`);
-
+        if (!object) return;
         for (const key of Object.keys(object)) {
-            if (typeof config[key] !== "object") {
-                console.warn(`Tried to restore config key '${key}' which has not been registered.`);
-                continue;
-            }
-
+            if (typeof config[key] !== "object") continue;
             const value = object[key];
             switch (config[key].type) {
                 case 'checkbox':
                     if (value === 'false') this.setConfigValue(key, false, triggerCallbacks);
                     else if (value === 'true') this.setConfigValue(key, true, triggerCallbacks);
-                    else console.warn(`Tried to give checkbox '${key}' an invalid value of: `, value);
                     break;
                 case 'color':
-                    if (validateConfigValue('color', value)) this.setConfigValue(key, value, triggerCallbacks);
-                    else console.warn(`Tried to give color '${key}' an invalid value of: `, value);
-                    break;
                 case 'hotkey':
-                    if (validateConfigValue('hotkey', value)) this.setConfigValue(key, value, triggerCallbacks);
-                    else console.warn(`Tried to give hotkey '${key}' an invalid value of: `, value);
-                    break;
-                case 'number':
-                    if (!isNaN(value)) this.setConfigValue(key, parseFloat(value), triggerCallbacks);
-                    else console.warn(`Tried to give number '${key}' a NaN value of: `, value);
-                    break;
                 case 'dropdown':
                 case 'text':
                 case 'hidden':
                     this.setConfigValue(key, value, triggerCallbacks);
                     break;
+                case 'number':
+                    this.setConfigValue(key, parseFloat(value), triggerCallbacks);
+                    break;
             }
         }
     }
 
-    /**
-     * @description Load the configuration localStorage
-     */
     this.loadConfig = () => {
         deserializeConfig(window.localStorage.getItem(configLocalStorageKey));
-
         updateConfigElements();
     }
 
@@ -252,70 +236,32 @@ const vasara = function () {
         value,
         display = 'Config Value',
         description = 'A configuration value',
-        type, // 'checkbox', 'color', 'hotkey', 'dropdown', 'number', 'text', 'hidden'
+        type, 
         callback = null,
         showOnlyIf = null,
-        action = null, // 'hotkey' only
-        options = [], // 'dropdown' only
-        min = null, // 'number' only
-        max = null, // 'number' only
-        step = null, // 'number' only
+        action = null, 
+        options = [], 
+        min = null, 
+        max = null, 
+        step = null, 
     } = {}) => {
-        if (config[key]) return console.error(`Tried to register an existing key!`);
-
-        const configValue = { key, display, description };
-
-        if (!['checkbox', 'color', 'hotkey', 'dropdown', 'number', 'text', 'hidden'].includes(type)) return console.error(`Invalid type: ${type}`);
-
-        configValue.type = type;
-
-        if (!validateConfigValue(type, value)) return console.error(`Tried to give ${type} '${key}' an invalid value of: `, value);
-
-        configValue.value = value;
-
-        if (type === 'hotkey') {
-            if (action === null) {
-                return console.error('Must define an action for a hotkey')
-            }
-
-            Object.assign(configValue, { action });
-        }
-
-        if (type === 'number') {
-            if (min === null || max === null || step === null) {
-                return console.error('min, max, step must be defined when registering a number');
-            }
-
-            Object.assign(configValue, { min, max, step });
-        }
-
+        if (config[key]) return;
+        const configValue = { key, display, description, type, value };
+        if (type === 'hotkey') Object.assign(configValue, { action });
+        if (type === 'number') Object.assign(configValue, { min, max, step });
         if (type === 'dropdown') {
             const opts = [value];
-            opts.push(...options);
+            options.forEach(o => { if(!opts.includes(o)) opts.push(o); });
             Object.assign(configValue, { options: opts });
         }
-
-        if (showOnlyIf !== null && typeof showOnlyIf !== 'function') return console.error('Value of showOnlyIf is not a function');
-        Object.assign(configValue, { showOnlyIf });
-
-        if (callback !== null && typeof callback !== 'function') return console.error('Value of onchange is not a functions');
-        Object.assign(configValue, { callback });
-
+        Object.assign(configValue, { showOnlyIf, callback });
         config[key] = configValue;
     }
 
-    /**
-     * @description Shorthand function for creating an element and appending it to a parent
-     * @param {string} type The type of element to create 
-     * @param {string} className The class name(s) to add to the element 
-     * @param {string} alt The alt text for the element
-     * @param {HTMLElement} parent The parent element to append the new element to 
-     * @returns {HTMLElement} The newly created element
-     */
     this.createElem = (type, className = '', title, parent) => {
         const elem = document.createElement(type);
         elem.className = className.split(' ').map(hcn).join(' ');
-        elem.title = title;
+        if (title) elem.title = title;
         parent?.appendChild(elem);
         return elem;
     }
@@ -326,11 +272,6 @@ const vasara = function () {
         modals = modals.filter(e => e.isConnected);
     }
 
-    /**
-     * @description Generates a modal window
-     * @param {Object} options The options for the modal window
-     * @returns {HTMLElement} The modal window element
-     */
     this.generateModalWindow = ({
         title = 'Modal Window',
         content = '',
@@ -346,31 +287,9 @@ const vasara = function () {
         tag = '',
         id = '',
     } = {}) => {
-        if (!disableTitleStacking || unique) {
-            const titleElements = document.querySelectorAll('.' + hcn('modal-window-header-title'));
-            let matched = 0;
-
-            for (const elem of titleElements) {
-                if (elem.getAttribute('originalTitle') === title) {
-                    matched++;
-                }
-            }
-
-            if (matched <= 0) {
-                titleDuplicateCounts[title] = 0;
-            }
-
-            titleDuplicateCounts[title]++;
-
-            if (titleDuplicateCounts[title] > 1) {
-                if (unique) {
-                    return console.info(`Blocked duplicate window with title: `, title);
-                }
-
-                if (!disableTitleStacking) {
-                    title += ` (${titleDuplicateCounts[title]})`;
-                }
-            }
+        if (unique) {
+            const existing = document.getElementById(id) || (tag ? document.querySelector(`[tag="${tag}"]`) : null);
+            if (existing) return null;
         }
 
         const modal = this.createElem('div', 'modal-window', '', document.body);
@@ -384,162 +303,137 @@ const vasara = function () {
 
         const bringToFront = () => {
             pruneModals();
-            modals.forEach(m => m.style.zIndex = 0);
-            modal.style.zIndex = 1;
+            modals.forEach(m => m.style.zIndex = 10000);
+            modal.style.zIndex = 10001;
         }
 
-        modal.addEventListener('click', bringToFront);
+        modal.addEventListener('mousedown', bringToFront);
 
         let x1 = 0, y1 = 0, x2 = 0, y2 = 0, dragging = false;
         header.addEventListener('mousedown', e => {
+            if (e.target.closest('.' + hcn('modal-window-header-button'))) return;
             [x2, y2, dragging] = [e.clientX, e.clientY, true];
             bringToFront();
         });
-        document.addEventListener('mouseup', e => {
-            dragging = e.button !== 0 ? dragging : false;
-        });
+        document.addEventListener('mouseup', () => { dragging = false; });
         document.addEventListener('mousemove', e => {
             if (dragging) {
                 [x1, y1] = [x2 - e.clientX, y2 - e.clientY];
                 [x2, y2] = [e.clientX, e.clientY];
                 modal.style.top = `${modal.offsetTop - y1}px`;
                 modal.style.left = `${modal.offsetLeft - x1}px`;
+                modal.style.transform = 'none';
             }
         });
 
         titleElem.innerText = title;
-        titleElem.setAttribute('originalTitle', title);
-        if (enableGhostButton) createElem('div', 'modal-window-header-button ghost-button', 'Toggle window shimmer', buttons).addEventListener('click', () => modal.classList.toggle(hcn('ghosted')));
-        if (enableCloseButton) createElem('div', 'modal-window-header-button close-button', 'Close window', buttons).addEventListener('click', e => {
+        
+        const minimizeBtn = this.createElem('div', 'modal-window-header-button minimize-button', 'Minimize', buttons);
+        minimizeBtn.innerText = '−';
+        minimizeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            modal.remove()
+            modal.style.display = 'none';
+            const icon = this.createElem('div', 'modal-window-minimized-icon', 'Restore ' + title, document.body);
+            icon.innerText = title[0].toUpperCase();
+            icon.addEventListener('click', () => {
+                modal.style.display = 'flex';
+                icon.remove();
+                bringToFront();
+            });
         });
+
+        if (enableGhostButton) this.createElem('div', 'modal-window-header-button ghost-button', 'Shimmer', buttons).addEventListener('click', () => modal.classList.toggle(hcn('ghosted')));
+        if (enableCloseButton) this.createElem('div', 'modal-window-header-button close-button', 'Close', buttons).addEventListener('click', e => {
+            e.stopPropagation();
+            modal.remove();
+        });
+
         const contentElem = this.createElem('div', 'modal-window-content', '', modal);
-        if (content) contentElem.outerHTML = content;
+        if (content) contentElem.innerHTML = content;
         modal.content = contentElem;
 
         Object.assign(modal.style, { width: `${width}px`, height: `${height}px` });
-        if (top !== null) Object.assign(modal.style, { top: `${top}px` });
-        if (left !== null) Object.assign(modal.style, { left: `${left}px` });
+        if (top !== null) modal.style.top = `${top}px`;
+        if (left !== null) modal.style.left = `${left}px`;
+        if (tag) modal.setAttribute('tag', tag);
 
-        if (tag) modal.setAttribute('tag', tag)
-
-        modal.generateLabel = function ({
-            text = '',
-            tooltip = '',
-            htmlfor = '',
-            tag = '',
-        } = {}) {
+        modal.generateLabel = function ({ text = '', tooltip = '', htmlfor = '' } = {}) {
             const label = document.createElement('label');
-
             label.textContent = text;
             label.title = tooltip;
             label.htmlFor = htmlfor;
-            label.setAttribute('tag', tag);
-
             contentElem.appendChild(label);
             return modal;
         }
 
-        modal.generateNumberInput = function ({
-            id = '',
-            value = 0,
-            step = null,
-            max = null,
-            min = null,
-            callback = null,
-            tag = '',
-        } = {}) {
+        modal.generateToggleInput = function ({ id = '', value = false, callback = null } = {}) {
+            const wrap = document.createElement('label');
+            wrap.className = hcn('toggle-wrap');
             const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.id = id;
+            input.checked = value;
+            input.className = hcn('toggle-input');
+            input.setAttribute('tag', 'vasara-config-element');
+            input.addEventListener('change', callback);
+            const slider = document.createElement('span');
+            slider.className = hcn('toggle-switch');
+            wrap.appendChild(input);
+            wrap.appendChild(slider);
+            contentElem.appendChild(wrap);
+            return modal;
+        }
 
+        modal.generateCheckboxInput = function (opts) { return modal.generateToggleInput(opts); }
+
+        modal.generateNumberInput = function ({ id = '', value = 0, step, max, min, callback } = {}) {
+            const input = document.createElement('input');
             input.type = 'number';
             input.id = id;
             input.value = value;
-            if (step !== null) input.step = step;
-            if (max !== null) input.max = max;
-            if (min !== null) input.min = min;
-            input.setAttribute('tag', tag);
-
+            if (step) input.step = step;
+            if (max) input.max = max;
+            if (min) input.min = min;
+            input.setAttribute('tag', 'vasara-config-element');
             input.addEventListener('change', callback);
             contentElem.appendChild(input);
             return modal;
         }
 
-        modal.generateDropdownInput = function ({
-            id = '',
-            value = '',
-            options = [],
-            callback = null,
-            tag = '',
-        } = {}) {
+        modal.generateDropdownInput = function ({ id = '', value = '', options = [], callback } = {}) {
             const select = document.createElement('select');
             select.id = id;
-
-            if (options.indexOf(value) < 0) options.push(value);
-
-            for (const opt of options) {
-                const option = document.createElement('option');
-                option.value = opt;
-                option.innerText = opt;
-                select.appendChild(option);
-            }
-
+            options.forEach(opt => {
+                const o = document.createElement('option');
+                o.value = opt;
+                o.innerText = opt;
+                select.appendChild(o);
+            });
             select.value = value;
-            select.setAttribute('tag', tag);
-
+            select.setAttribute('tag', 'vasara-config-element');
             select.addEventListener('change', callback);
             contentElem.appendChild(select);
             return modal;
         }
 
-        modal.generateColorInput = function ({
-            id = '',
-            value = '',
-            callback = null,
-            tag = '',
-        } = {}) {
+        modal.generateColorInput = function ({ id = '', value = '', callback } = {}) {
             const input = document.createElement('input');
-
             input.type = 'color';
             input.id = id;
             input.value = value;
-            input.setAttribute('tag', tag);
-
+            input.setAttribute('tag', 'vasara-config-element');
             input.addEventListener('change', callback);
             contentElem.appendChild(input);
             return modal;
         }
 
-        modal.generateCheckboxInput = function ({
-            id = '',
-            value = false,
-            callback = null,
-            tag = '',
-        } = {}) {
+        modal.generateHotkeyInput = function ({ id = '', value = '', callback } = {}) {
             const input = document.createElement('input');
-
-            input.type = 'checkbox';
-            input.id = id;
-            input.checked = value;
-            input.setAttribute('tag', tag);
-
-            input.addEventListener('change', callback);
-            contentElem.appendChild(input);
-            return modal;
-        }
-
-        modal.generateHotkeyInput = function ({
-            id = '',
-            value = '',
-            callback = null,
-            tag = '',
-        } = {}) {
-            const input = document.createElement('input');
-
             input.id = id;
             input.type = 'text';
             input.value = value;
             input.readOnly = true;
+            input.setAttribute('tag', 'vasara-config-element');
             input.addEventListener('focus', () => {
                 const onKeydown = (e) => {
                     if (['Control', 'Shift', 'Alt'].includes(e.key)) return;
@@ -552,55 +446,31 @@ const vasara = function () {
                 };
                 document.addEventListener('keydown', onKeydown);
             });
-            input.setAttribute('tag', tag);
-
             contentElem.appendChild(input);
             return modal;
         }
 
-        modal.generateStringInput = function ({
-            id = '',
-            value = '',
-            callback = null,
-            tag = '',
-        } = {}) {
+        modal.generateStringInput = function ({ id = '', value = '', callback } = {}) {
             const input = document.createElement('input');
-
             input.type = 'text';
             input.id = id;
             input.value = value;
-            input.setAttribute('tag', tag);
-
+            input.setAttribute('tag', 'vasara-config-element');
             input.addEventListener('change', callback);
             contentElem.appendChild(input);
             return modal;
         }
 
-        modal.generateButton = function ({
-            id = '',
-            text = '',
-            callback = null,
-            tag = '',
-        } = {}) {
+        modal.generateButton = function ({ text = '', callback } = {}) {
             const button = document.createElement('button');
-
-            button.id = id;
             button.textContent = text;
-            button.setAttribute('tag', tag);
-
             button.addEventListener('click', callback);
             contentElem.appendChild(button);
             return modal;
         }
 
         modal.putNewline = function () {
-            const newline = document.createElement('br');
-            contentElem.appendChild(newline);
-            return modal;
-        }
-
-        modal.appendElement = function (element) {
-            contentElem.appendChild(element);
+            contentElem.appendChild(document.createElement('br'));
             return modal;
         }
 
@@ -609,370 +479,174 @@ const vasara = function () {
 
     const updateConfigElements = () => {
         const configElements = document.querySelectorAll('[tag=vasara-config-element]');
-
         for (const elem of configElements) {
-            switch (config[elem.id].type) {
-                case 'checkbox':
-                    elem.checked = config[elem.id].value;
-                    break;
-                case 'hotkey':
-                case 'color':
-                case 'number':
-                case 'dropdown':
-                case 'text':
-                    elem.value = config[elem.id].value;
-                    break;
-            }
-
-            if (typeof config[elem.id].showOnlyIf === 'function') {
-                const label = document.querySelector(`[for=${elem.id}]`);
-                const next = elem.nextElementSibling;
-                if (config[elem.id].showOnlyIf()) {
-                    elem.style.display = 'inline-block';
-                    label.style.display = 'inline-block';
-                    if (next.tagName === 'BR') next.style.display = 'inline-block';
-                }
-                else {
-                    elem.style.display = 'none';
-                    label.style.display = 'none';
-                    if (next.tagName === 'BR') next.style.display = 'none';
-                }
+            const cfg = config[elem.id];
+            if (!cfg) continue;
+            if (cfg.type === 'checkbox') elem.checked = cfg.value;
+            else elem.value = cfg.value;
+            if (typeof cfg.showOnlyIf === 'function') {
+                const label = document.querySelector(`label[for="${elem.id}"]`);
+                const display = cfg.showOnlyIf() ? 'block' : 'none';
+                elem.style.display = display;
+                if (label) label.style.display = display;
             }
         }
     }
 
-    /**
-     * @description Shorthand to generate a modal with the contents 
-     * @param {Object} options The options for the modal window
-     * @returns {HTMLElement} The modal window element
-     */
-    this.generateConfigWindow = ({
-        title = 'Config Window',
-        width = 400,
-        height = 300,
-        top = null,
-        left = null,
-        resizable = false,
-        disableTitleStacking = false,
-        enableGhostButton = true,
-        enableCloseButton = true,
-        tag = '',
-        id = '',
-    } = {}) => {
-        const modal = this.generateModalWindow({ title, width, height, top, left, resizable, disableTitleStacking, enableGhostButton, enableCloseButton, tag, id, unique: true });
-
+    this.generateConfigWindow = ({ title = 'Config Window', width = 450, height = 500 } = {}) => {
+        const modal = this.generateModalWindow({ title, width, height, unique: true, id: 'vasara-config-window' });
         if (!modal) return;
-
         for (const key of Object.keys(config)) {
-            modal.generateLabel({
-                text: config[key].display,
-                tooltip: config[key].description,
-                htmlfor: key,
-            });
-            switch (config[key].type) {
-                case 'checkbox':
-                    modal.generateCheckboxInput({
-                        value: config[key].value,
-                        callback: e => this.setConfigValue(key, e.target.checked),
-                        tag: 'vasara-config-element',
-                        id: key,
-                    });
-                    break;
-                case 'color':
-                    modal.generateColorInput({
-                        value: config[key].value,
-                        callback: e => this.setConfigValue(key, e.target.value),
-                        tag: 'vasara-config-element',
-                        id: key,
-                    });
-                    break;
-                case 'hotkey':
-                    modal.generateHotkeyInput({
-                        value: config[key].value,
-                        callback: v => this.setConfigValue(key, v),
-                        tag: 'vasara-config-element',
-                        id: key,
-                    });
-                    break;
-                case 'number':
-                    modal.generateNumberInput({
-                        value: config[key].value,
-                        step: config[key].step,
-                        min: config[key].min,
-                        max: config[key].max,
-                        callback: e => this.setConfigValue(key, e.target.value),
-                        tag: 'vasara-config-element',
-                        id: key,
-                    });
-                    break;
-                case 'dropdown':
-                    modal.generateDropdownInput({
-                        value: config[key].value,
-                        options: config[key].options,
-                        callback: e => this.setConfigValue(key, e.target.value),
-                        tag: 'vasara-config-element',
-                        id: key,
-                    });
-                    break;
-                case 'text':
-                    modal.generateStringInput({
-                        value: config[key].value,
-                        callback: e => this.setConfigValue(key, e.target.value),
-                        tag: 'vasara-config-element',
-                        id: key,
-                    });
-                    break;
+            const cfg = config[key];
+            if (cfg.type === 'hidden') continue;
+            modal.generateLabel({ text: cfg.display, tooltip: cfg.description, htmlfor: key });
+            switch (cfg.type) {
+                case 'checkbox': modal.generateToggleInput({ value: cfg.value, callback: e => this.setConfigValue(key, e.target.checked), id: key }); break;
+                case 'color': modal.generateColorInput({ value: cfg.value, callback: e => this.setConfigValue(key, e.target.value), id: key }); break;
+                case 'hotkey': modal.generateHotkeyInput({ value: cfg.value, callback: v => this.setConfigValue(key, v), id: key }); break;
+                case 'number': modal.generateNumberInput({ value: cfg.value, step: cfg.step, min: cfg.min, max: cfg.max, callback: e => this.setConfigValue(key, e.target.value), id: key }); break;
+                case 'dropdown': modal.generateDropdownInput({ value: cfg.value, options: cfg.options, callback: e => this.setConfigValue(key, e.target.value), id: key }); break;
+                case 'text': modal.generateStringInput({ value: cfg.value, callback: e => this.setConfigValue(key, e.target.value), id: key }); break;
             }
-            modal.putNewline();
         }
-
-        const configElements = document.querySelectorAll('[tag=vasara-config-element]');
-        configElements.forEach(e => e.addEventListener('change', updateConfigElements));
-        updateConfigElements();
-
+        this.setTheme(this.queryConfigKey('chesshook_ui_theme') || 0);
         modal.isVasaraConfig = true;
-
         return modal;
     }
 
     const hcn = className => 'vasara-' + className.split('').reduce((hash, char) => ((hash << 5) - hash + char.charCodeAt(0)) | 0, 0).toString(36);
     const injectCss = (css) => {
-        const hashedCSS = css.replace(/\.([a-zA-Z][a-zA-Z0-9_-]*)/g, (_, className) => `.${hcn(className)}`);
-        const minifiedCSS = css.replace(/\n/g, '');
-
+        const hashedCSS = css.replace(/\.([a-zA-Z][a-zA-Z0-9_-]*)/g, (_, className) => `.${hcn(className)}`).replace(/\n/g, '');
         const styleSheetElem = document.createElement('style');
-
-        if (styleSheetElem.styleSheet) {
-            styleSheetElem.styleSheet.cssText = minifiedCSS;
-        } else {
-            styleSheetElem.appendChild(document.createTextNode(hashedCSS));
-        }
-
+        styleSheetElem.appendChild(document.createTextNode(hashedCSS));
         document.head.appendChild(styleSheetElem);
     }
 
-
     const css = `
-:root {
-    --vasara-bg: #21212b;
-    --vasara-header: #1a1a24;
-    --vasara-text: #b0b0c0;
-    --vasara-accent: #ff3366;
-    --vasara-border: #313141;
-    --vasara-input: #1a1a24;
-    --vasara-radius: 8px;
-}
-
-.modal-window,
-.modal-window button,
-.modal-window input,
-.modal-window select,
-.modal-window label {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    color: var(--vasara-text);
-}
-
-.modal-window {
-    position        : fixed;
-    top             : 50%;
-    left            : 50%;
-    transform       : translate(-50%, -50%);
-    border          : 1px solid var(--vasara-border);
-    background-color: var(--vasara-bg);
-    z-index         : 10000;
-    box-shadow      : 0 10px 40px rgba(0, 0, 0, 0.6);
-    overflow        : hidden;
-    border-radius   : var(--vasara-radius);
-}
-
-.modal-window-header {
-    display         : flex;
-    justify-content : space-between;
-    align-items     : center;
-    background-color: var(--vasara-header);
-    padding         : 12px 18px;
-    cursor          : move;
-    border-bottom   : 1px solid var(--vasara-border);
-    font-weight     : 600;
-    font-size       : 14px;
-    letter-spacing  : 0.5px;
-}
-
-.modal-window-header-title {
-    flex: 1;
-    color: var(--vasara-text);
-}
-
-.modal-window-header-buttons {
-    display: flex;
-    align-items: center;
-}
-
-.modal-window-header-button {
-    width        : 12px;
-    height       : 12px;
-    border-radius: 50%;
-    margin-left  : 10px;
-    cursor       : pointer;
-    transition   : opacity 0.2s, transform 0.2s;
-}
-
-.modal-window-header-button:hover {
-    opacity: 0.8;
-    transform: scale(1.1);
-}
-
-.ghost-button {
-    background-color: #f1c40f;
-}
-
-.close-button {
-    background-color: var(--vasara-accent);
-}
-
-.modal-window-content {
-    padding   : 20px 24px 24px 24px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    max-height: 80vh;
-}
-
-.modal-window-content button {
-    border          : 1px solid var(--vasara-accent);
-    border-radius   : 20px;
-    background-color: transparent;
-    color           : var(--vasara-accent);
-    cursor          : pointer;
-    padding         : 8px 18px;
-    font-size       : 12px;
-    font-weight     : 600;
-    text-transform  : uppercase;
-    transition      : all 0.2s ease;
-    margin-top      : 8px;
-    margin-bottom   : 8px;
-    box-shadow      : 0 0 5px rgba(255, 51, 102, 0.1);
-}
-
-.modal-window-content button:hover {
-    background-color: var(--vasara-accent);
-    color           : #fff;
-    box-shadow      : 0 0 15px rgba(255, 51, 102, 0.4);
-}
-
-.modal-window-content button:active {
-    transform: scale(0.95);
-}
-
-.modal-window-content input[type="text"],
-.modal-window-content input[type="number"],
-.modal-window-content select {
-    padding      : 8px 12px;
-    border       : 1px solid var(--vasara-border);
-    border-radius: 6px;
-    background-color: var(--vasara-input);
-    color: var(--vasara-text);
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    font-size: 13px;
-    margin: 5px 0;
-    width: 60%;
+.modal-window * {
+    transition: color 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
     box-sizing: border-box;
-    float: right;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
-
-.modal-window-content input[type="text"]:focus,
-.modal-window-content input[type="number"]:focus,
-.modal-window-content select:focus {
-    border-color: var(--vasara-accent);
-    box-shadow: 0 0 0 2px rgba(255, 51, 102, 0.15);
-}
-
-.modal-window-content input[type="color"] {
-    -webkit-appearance: none;
-    border: none;
-    width: 32px;
-    height: 32px;
-    border-radius: 4px;
-    background: none;
-    cursor: pointer;
-    padding: 0;
-    float: right;
-    margin: 5px 0;
-}
-.modal-window-content input[type="color"]::-webkit-color-swatch-wrapper {
-    padding: 0;
-}
-.modal-window-content input[type="color"]::-webkit-color-swatch {
-    border: 1px solid var(--vasara-border);
-    border-radius: 4px;
-}
-
-.modal-window-content label {
-    font-size: 13px;
-    display: inline-block;
-    width: 38%;
-    vertical-align: top;
-    margin-top: 12px;
-    font-weight: 500;
-}
-
-/* Custom Checkbox (Toggle Switch) */
-.modal-window-content input[type="checkbox"] {
-    appearance: none;
-    -webkit-appearance: none;
-    width: 36px;
-    height: 20px;
-    background-color: var(--vasara-input);
+.modal-window {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--vasara-bg);
+    backdrop-filter: blur(15px) saturate(160%);
+    -webkit-backdrop-filter: blur(15px) saturate(160%);
     border: 1px solid var(--vasara-border);
     border-radius: 20px;
-    position: relative;
-    cursor: pointer;
-    outline: none;
-    float: right;
-    margin: 10px 0;
-    transition: background-color 0.3s ease, border-color 0.3s ease;
+    box-shadow: 0 20px 50px var(--vasara-shadow);
+    color: var(--vasara-text);
+    z-index: 10000;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
-
-.modal-window-content input[type="checkbox"]::after {
+.modal-window-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--vasara-surface);
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--vasara-border);
+    cursor: move;
+}
+.modal-window-header-title {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+.modal-window-header-buttons { display: flex; gap: 8px; }
+.modal-window-header-button {
+    width: 22px;
+    height: 22px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    opacity: 0.6;
+}
+.modal-window-header-button:hover { opacity: 1; background: rgba(255,255,255,0.1); }
+.modal-window-content { padding: 18px; overflow-y: auto; flex: 1; }
+.modal-window-content label {
+    display: block;
+    font-size: 11px;
+    font-weight: 800;
+    margin: 10px 0 5px 0;
+    color: var(--vasara-text-secondary);
+    text-transform: uppercase;
+}
+.modal-window input[type="text"], .modal-window input[type="number"], .modal-window select {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--vasara-border);
+    background: var(--vasara-surface);
+    color: var(--vasara-text);
+    font-size: 14px;
+    outline: none;
+    margin-bottom: 5px;
+}
+.modal-window input:focus, .modal-window select:focus { border-color: var(--vasara-accent); }
+.toggle-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; cursor: pointer; }
+.toggle-switch {
+    position: relative;
+    width: 42px;
+    height: 22px;
+    background: var(--vasara-border);
+    border-radius: 22px;
+}
+.toggle-switch::after {
     content: '';
     position: absolute;
     top: 2px;
     left: 2px;
-    width: 14px;
-    height: 14px;
-    background-color: #555;
+    width: 18px;
+    height: 18px;
+    background: #fff;
     border-radius: 50%;
-    transition: transform 0.3s ease, background-color 0.3s ease;
+    transition: transform 0.2s;
 }
-
-.modal-window-content input[type="checkbox"]:checked {
-    border-color: var(--vasara-accent);
+.toggle-input:checked + .toggle-switch { background: var(--vasara-accent); box-shadow: 0 0 10px var(--vasara-accent); }
+.toggle-input:checked + .toggle-switch::after { transform: translateX(20px); }
+.toggle-input { display: none; }
+.modal-window button {
+    width: 100%;
+    padding: 12px;
+    border-radius: 14px;
+    border: none;
+    background: var(--vasara-accent);
+    color: #fff;
+    font-weight: 800;
+    cursor: pointer;
+    margin-top: 10px;
 }
-
-.modal-window-content input[type="checkbox"]:checked::after {
-    transform: translateX(16px);
-    background-color: var(--vasara-accent);
-    box-shadow: 0 0 5px var(--vasara-accent);
+.modal-window-minimized-icon {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    width: 50px;
+    height: 50px;
+    background: var(--vasara-accent);
+    border-radius: 50%;
+    box-shadow: 0 10px 30px var(--vasara-shadow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 22px;
+    font-weight: 800;
+    cursor: pointer;
+    z-index: 11000;
 }
-
-.modal-window-content br {
-    clear: both;
-}
-
-.resizable {
-    resize: both;
-}
-
-.ghosted {
-    opacity: 0.3;
-    pointer-events: none;
-}
-.ghosted .modal-window-header {
-    pointer-events: auto;
-}
+.ghosted { opacity: 0.3; }
 `;
-
     injectCss(css);
-
     return this;
 };
