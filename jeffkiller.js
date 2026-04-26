@@ -2085,6 +2085,7 @@ const betafishEngine = function() {
     }
 
     SearchController.best = bestMove;
+    SearchController.bestScore = bestScore;
     SearchController.thinking = false;
   }
 
@@ -2325,29 +2326,59 @@ self.onmessage = function(e) {
             // Handle UCI configuration (Hash, Threads, etc.)
             // Note: Betafish internal handles these via its own controller
         } else if (type === 'GETMOVE') {
-            const move = engine.getBestMove();
+            // ============================================================
+            // JEFFKILLER DUAL-PASS NEURAL SEARCH (99/1 Elite Protocol)
+            // ============================================================
             
-            // JEFFKILLER NEURAL SIGNATURE BOOSTER
-            // We ensure moves are 100% engine-verified to prevent blunders
-            const isCritical = Math.abs(GameBoard.PvArray[0].score) > 500; 
-            const rand = Math.random() * 100;
+            // PASS 1: Find the absolute #1 Best Move
+            const bestMove = engine.getBestMove();
+            const bestMoveStr = PrMove(bestMove);
+            const bestScore = SearchController.bestScore || 0;
             
-            // If we are in 'Human Sync' mode (1%) and not in a critical winning/losing spot
-            // and the engine has found a high-quality alternative PV...
-            // (Note: Betafish PvTable stores previous bests)
+            // PASS 2: Find the #2 "Excellent" Move (Engine-Verified)
+            // We search all legal moves and find the second-best one
+            let secondBestMove = null;
+            let secondBestStr = null;
+            let secondBestScore = -99999;
             
-            self.postMessage({ type: 'BESTMOVE', payload: move });
-
-            // TRANSMIT PV LIST FOR HUMAN-ACCURACY (Mocking top lines for 99/1 split)
-            // In a real Stockfish port, this would come from the search.
-            // For Betafish, we provide a structured list for the userscript selector.
+            try {
+                GenerateMoves();
+                const startIdx = GameBoard.moveListStart[GameBoard.ply];
+                const endIdx = GameBoard.moveListStart[GameBoard.ply + 1];
+                
+                for (let i = startIdx; i < endIdx; i++) {
+                    const candidateMove = GameBoard.moveList[i];
+                    const candidateStr = PrMove(candidateMove);
+                    
+                    // Skip the #1 best move
+                    if (candidateStr === bestMoveStr) continue;
+                    
+                    // Quick tactical verification: make the move, evaluate
+                    if (MakeMove(candidateMove) === false) continue;
+                    
+                    // Evaluate the resulting position with a shallow negamax
+                    const evalScore = -AlphaBeta(-INFINITE, INFINITE, 4); // Quick 4-ply check
+                    TakeMove();
+                    
+                    if (evalScore > secondBestScore) {
+                        secondBestScore = evalScore;
+                        secondBestMove = candidateMove;
+                        secondBestStr = candidateStr;
+                    }
+                }
+            } catch (e) {
+                // If anything fails, secondBestMove stays null (safe fallback)
+            }
+            
+            // TRANSMIT BOTH MOVES TO USERSCRIPT
             self.postMessage({ 
-                type: 'PVLIST', 
-                payload: [
-                    { move: move, score: 100 },
-                    { move: 'e2e4', score: 90 }, // Placeholder for 'Excellent' move selection
-                    { move: 'd2d4', score: 80 }  // Placeholder for 'Good' move selection
-                ] 
+                type: 'BESTMOVE', 
+                payload: {
+                    best: bestMoveStr,
+                    bestScore: bestScore,
+                    excellent: secondBestStr,
+                    excellentScore: secondBestScore
+                }
             });
         }
     } catch (err) {
