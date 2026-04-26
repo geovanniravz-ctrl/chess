@@ -71,7 +71,7 @@ const betafishEngine = function() {
 
   // prettier-ignore
   {
-    var PieceVal = [0, 100, 328, 322, 550, 1000, 50000, 100, 328, 322, 550, 1000, 50000];
+    var PieceVal = [0, 100, 330, 320, 545, 1010, 50000, 100, 330, 320, 545, 1010, 50000];
     var PieceCol = [COLOURS.BOTH, COLOURS.WHITE, COLOURS.WHITE, COLOURS.WHITE, COLOURS.WHITE, COLOURS.WHITE, COLOURS.WHITE,
     COLOURS.BLACK, COLOURS.BLACK, COLOURS.BLACK, COLOURS.BLACK, COLOURS.BLACK, COLOURS.BLACK];
 
@@ -1523,8 +1523,8 @@ const betafishEngine = function() {
       -58, -38, -13, -28, -31, -27, -63, -99,
       -25, -8, -25, -2, -9, -25, -24, -52,
       -24, -20, 10, 9, -1, -9, -19, -41,
-      -17, 3, 22, 22, 22, 11, 8, -18,
-      -18, -6, 16, 25, 16, 17, 4, -18,
+      -17, 3, 25, 25, 25, 11, 8, -18,
+      -18, -6, 19, 28, 19, 17, 4, -18,
       -23, -3, -1, 15, 10, -3, -20, -22,
       -42, -20, -10, -5, -2, -20, -23, -44,
       -29, -51, -23, -15, -22, -18, -50, -64,
@@ -1619,7 +1619,7 @@ const betafishEngine = function() {
     ];
   }
 
-  const BishopPair = 40;
+  const BishopPair = 52;
 
   var mg_pesto_table = {
     wP: mg_pawn_table,
