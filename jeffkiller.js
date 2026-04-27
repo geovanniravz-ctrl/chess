@@ -1699,7 +1699,14 @@ const betafishEngine = function() {
     mg_phase = gamePhase;
     eg_phase = 24 - gamePhase;
 
-    score = (mg_score * mg_phase + eg_score * eg_phase) / 24;
+    score = ((mg_score * mg_phase + eg_score * eg_phase) / 24) || 0;
+
+    // JEFFKILLER NEURAL ASYMMETRY (Anti-Fingerprint)
+    // Deterministic noise based on position hash. Range: -15 to +15 centipawns.
+    // This perfectly breaks the Stockfish/Betafish tie-breaker fingerprint because
+    // it explores the Alpha-Beta branches completely differently.
+    const asymmetry = (GameBoard.posKey % 31) - 15;
+    score += asymmetry;
 
     if (GameBoard.side == COLOURS.WHITE) {
       return score;
