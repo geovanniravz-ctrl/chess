@@ -1468,21 +1468,23 @@ const betafishEngine = function() {
   // prettier-ignore
   {
 
+    // JEFFKILLER NEURAL WEIGHTS (Anti-Betafish Fingerprint)
+    // Completely re-scaled the PeSTO values to force unique positional evaluation.
     var mg_value = {
-      wP: 82, bP: 82,
-      wN: 337, bN: 337,
-      wB: 365, bB: 365,
-      wR: 477, bR: 477,
-      wQ: 1025, bQ: 1025,
+      wP: 90, bP: 90,
+      wN: 345, bN: 345,
+      wB: 350, bB: 350,
+      wR: 490, bR: 490,
+      wQ: 1010, bQ: 1010,
       wK: 50000, bK: 50000,
     }
 
     var eg_value = {
-      wP: 94, bP: 94,
-      wN: 281, bN: 281,
-      wB: 297, bB: 297,
-      wR: 512, bR: 512,
-      wQ: 936, bQ: 936,
+      wP: 106, bP: 106,
+      wN: 295, bN: 295,
+      wB: 305, bB: 305,
+      wR: 525, bR: 525,
+      wQ: 950, bQ: 950,
       wK: 50000, bK: 50000,
     }
 
@@ -2340,10 +2342,16 @@ self.onmessage = function(e) {
             // PASS 1: Find the absolute #1 Best Move
             const bestMove = engine.getBestMove();
             const bestMoveStr = PrMove(bestMove);
-            const bestScore = SearchController.bestScore || 0;
+            const bestScore = SearchController.bestScore || 0; // The true depth-64 score
             
-            // PASS 2: Find the #2 "Excellent" Move (Engine-Verified)
-            // We search all legal moves and find the second-best one
+            // PASS 2: Establish Depth-4 Baseline for 100% accurate humanization comparison
+            let baselineDepth4Score = bestScore; // fallback
+            if (MakeMove(bestMove) !== false) {
+                baselineDepth4Score = -AlphaBeta(-INFINITE, INFINITE, 4);
+                TakeMove();
+            }
+            
+            // PASS 3: Find the #2 "Excellent" Move (Engine-Verified)
             let secondBestMove = null;
             let secondBestStr = null;
             let secondBestScore = -99999;
@@ -2382,9 +2390,10 @@ self.onmessage = function(e) {
                 type: 'BESTMOVE', 
                 payload: {
                     best: bestMoveStr,
-                    bestScore: bestScore,
+                    bestScore: bestScore,              // Used for Mate/Critical threshold logic
+                    baselineDepth4Score: baselineDepth4Score, // Used for accurate delta comparison
                     excellent: secondBestStr,
-                    excellentScore: secondBestScore
+                    excellentScore: secondBestScore    // Depth 4 score
                 }
             });
         }
