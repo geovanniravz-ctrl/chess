@@ -1924,10 +1924,8 @@ const betafishEngine = function() {
 
       if (Score > alpha) {
         if (Score >= beta) {
-          if (Legal == 1) {
-            SearchController.fhf++;
-          }
           SearchController.fh++;
+          StorePvMove(Move, beta, 0, HF_BETA);
           return beta;
         }
         alpha = Score;
@@ -1936,7 +1934,7 @@ const betafishEngine = function() {
     }
 
     if (alpha != OldAlpha) {
-      StorePvMove(BestMove);
+      StorePvMove(BestMove, alpha, 0, HF_EXACT);
     }
 
     return alpha;
@@ -2075,6 +2073,7 @@ const betafishEngine = function() {
               GameBoard.searchKillers[GameBoard.ply];
             GameBoard.searchKillers[GameBoard.ply] = Move;
           }
+          StorePvMove(Move, beta, depth, HF_BETA);
           return beta;
         }
         if ((Move & MFLAGCAP) == 0) {
@@ -2096,7 +2095,9 @@ const betafishEngine = function() {
     }
 
     if (alpha != OldAlpha) {
-      StorePvMove(BestMove);
+      StorePvMove(BestMove, alpha, depth, HF_EXACT);
+    } else {
+      StorePvMove(NOMOVE, alpha, depth, HF_ALPHA);
     }
 
     return alpha;
