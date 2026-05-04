@@ -188,23 +188,12 @@ const betafishEngine = function() {
     }
   }
 
-  const LMRTable = new Array(64 * 64);
-
-  function InitLMR() {
-      for (let i = 0; i < 64; i++) {
-        for (let j = 0; j < 64; j++) {
-          LMRTable[i * 64 + j] = Math.max(0, Math.floor(0.75 + Math.log(i + 1) * Math.log(j + 1) / 2.25));
-        }
-      }
-  }
-
   function init() {
     InitFilesRanksBrd();
     InitHashKeys();
     InitSq120To64();
     InitBoardVars();
     InitMvvLva();
-    InitLMR();
     ParseFen(START_FEN);
   }
 
@@ -940,31 +929,6 @@ const betafishEngine = function() {
         PieceCol[PROMOTED(move)] == COLOURS.WHITE ? PIECES.wP : PIECES.bP
       );
     }
-  }
-
-  function MakeNullMove() {
-      GameBoard.history[GameBoard.hisPly].posKey = GameBoard.posKey;
-      if (GameBoard.enPas != SQUARES.NO_SQ) hashEnPas();
-      GameBoard.history[GameBoard.hisPly].move = NOMOVE;
-      GameBoard.history[GameBoard.hisPly].fiftyMove = GameBoard.fiftyMove;
-      GameBoard.history[GameBoard.hisPly].enPas = GameBoard.enPas;
-      GameBoard.history[GameBoard.hisPly].castlePerm = GameBoard.castlePerm;
-      GameBoard.enPas = SQUARES.NO_SQ;
-      GameBoard.side ^= 1;
-      GameBoard.hisPly++;
-      GameBoard.ply++;
-      hashSide();
-  }
-
-  function TakeNullMove() {
-      GameBoard.hisPly--;
-      GameBoard.ply--;
-      GameBoard.side ^= 1;
-      GameBoard.enPas = GameBoard.history[GameBoard.hisPly].enPas;
-      GameBoard.castlePerm = GameBoard.history[GameBoard.hisPly].castlePerm;
-      GameBoard.fiftyMove = GameBoard.history[GameBoard.hisPly].fiftyMove;
-      GameBoard.posKey = GameBoard.history[GameBoard.hisPly].posKey;
-      hashSide();
   }
 
   function ThreeFoldRep() {
@@ -1961,16 +1925,6 @@ const betafishEngine = function() {
 
     var Score = -INFINITE;
 
-    // NULL MOVE PRUNING (D3+ Selective)
-    if (depth >= 3 && !InCheck && GameBoard.ply > 0 && 
-        (GameBoard.material[GameBoard.side] > 10000)) { // Ensures we have more than just a King
-        MakeNullMove();
-        Score = -AlphaBeta(-beta, -beta + 1, depth - 4);
-        TakeNullMove();
-        if (SearchController.stop) return 0;
-        if (Score >= beta) return beta;
-    }
-
     GenerateMoves();
 
     var MoveNum = 0;
@@ -2006,17 +1960,7 @@ const betafishEngine = function() {
         continue;
       }
       Legal++;
-
-      // LATE MOVE REDUCTION (Selectivity Upgrade)
-      if (depth >= 3 && Legal > 4 && !InCheck && (Move & MFLAGCAP) == 0 && (Move & MFLAGPROM) == 0) {
-          let reduction = LMRTable[Math.min(63, depth) * 64 + Math.min(63, Legal)];
-          Score = -AlphaBeta(-alpha - 1, -alpha, depth - 1 - reduction);
-          if (Score > alpha) {
-              Score = -AlphaBeta(-beta, -alpha, depth - 1);
-          }
-      } else {
-          Score = -AlphaBeta(-beta, -alpha, depth - 1);
-      }
+      Score = -AlphaBeta(-beta, -alpha, depth - 1);
 
       TakeMove();
 
@@ -2104,33 +2048,12 @@ const betafishEngine = function() {
     var c;
     ClearForSearch();
 
-    let alpha = -INFINITE;
-    let beta = INFINITE;
-    let delta = 50; // Points
-
     for (
       currentDepth = 1;
       currentDepth <= SearchController.depth;
       ++currentDepth
     ) {
-      if (currentDepth > 4) {
-          alpha = bestScore - delta;
-          beta = bestScore + delta;
-      }
-
-      while (true) {
-          bestScore = AlphaBeta(alpha, beta, currentDepth);
-
-          if (SearchController.stop) break;
-
-          if (bestScore <= alpha) {
-              alpha = -INFINITE;
-          } else if (bestScore >= beta) {
-              beta = INFINITE;
-          } else {
-              break;
-          }
-      }
+      bestScore = AlphaBeta(-INFINITE, INFINITE, currentDepth);
 
       if (SearchController.stop) {
         break;
