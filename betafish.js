@@ -2195,6 +2195,31 @@ const betafishEngine = function() {
   function getBestMove() {
     SearchController.depth = MAXDEPTH;
     SearchPosition();
+
+    // 🜁 HUMANIZED SELECTOR (3200+ ELO SGM MODE)
+    let rootMoves = [];
+    GenerateMoves();
+    for (let i = GameBoard.moveListStart[GameBoard.ply]; i < GameBoard.moveListStart[GameBoard.ply + 1]; ++i) {
+        let m = GameBoard.moveList[i];
+        if (MakeMove(m)) {
+            let score = -AlphaBeta(-INFINITE, INFINITE, 1); 
+            TakeMove();
+            rootMoves.push({move: m, score: score});
+        }
+    }
+    rootMoves.sort((a, b) => b.score - a.score);
+
+    if (rootMoves.length > 0) {
+        const best = rootMoves[0];
+        const second = rootMoves[1];
+        const third = rootMoves[2];
+        const rng = Math.random();
+
+        if (second && (best.score - second.score) <= 20 && rng > 0.85) return second.move;
+        if (third && (best.score - third.score) <= 25 && rng > 0.95) return third.move;
+        return best.move;
+    }
+
     return SearchController.best;
   }
 
