@@ -134,13 +134,13 @@ const betafishEngine = function() {
 
   function InitHashKeys() {
     for (index = 0; index < 14 * 120; ++index) {
-      PieceKeys[index] = getRand32();
+      PieceKeys[index] = {h: getRand32(), l: getRand32()};
     }
 
-    SideKey = getRand32();
+    SideKey = {h: getRand32(), l: getRand32()};
 
     for (index = 0; index < 16; ++index) {
-      CastleKeys[index] = getRand32();
+      CastleKeys[index] = {h: getRand32(), l: getRand32()};
     }
   }
 
@@ -222,17 +222,21 @@ const betafishEngine = function() {
   }
 
   function hashPiece(pce, sq) {
-    GameBoard.posKey ^= PieceKeys[pce * 120 + sq];
+    GameBoard.posKey.h ^= PieceKeys[pce * 120 + sq].h;
+    GameBoard.posKey.l ^= PieceKeys[pce * 120 + sq].l;
   }
 
   function hashCastle() {
-    GameBoard.posKey ^= CastleKeys[GameBoard.castlePerm];
+    GameBoard.posKey.h ^= CastleKeys[GameBoard.castlePerm].h;
+    GameBoard.posKey.l ^= CastleKeys[GameBoard.castlePerm].l;
   }
   function hashSide() {
-    GameBoard.posKey ^= SideKey;
+    GameBoard.posKey.h ^= SideKey.h;
+    GameBoard.posKey.l ^= SideKey.l;
   }
   function hashEnPas() {
-    GameBoard.posKey ^= PieceKeys[GameBoard.enPas];
+    GameBoard.posKey.h ^= PieceKeys[GameBoard.enPas].h;
+    GameBoard.posKey.l ^= PieceKeys[GameBoard.enPas].l;
   }
 
   function sq120to64(sq120) {
@@ -298,7 +302,7 @@ const betafishEngine = function() {
   GameBoard.material = new Array(2); // WHITE,BLACK material of pieces
   GameBoard.pceNum = new Array(13); // indexed by Pce
   GameBoard.pList = new Array(14 * 10);
-  GameBoard.posKey = 0;
+  GameBoard.posKey = {h: 0, l: 0};
   GameBoard.moveList = new Array(MAXDEPTH * MAXPOSITIONMOVES);
   GameBoard.moveScores = new Array(MAXDEPTH * MAXPOSITIONMOVES);
   GameBoard.moveListStart = new Array(MAXDEPTH);
@@ -442,25 +446,29 @@ const betafishEngine = function() {
 
   function GeneratePosKey() {
     var sq = 0;
-    var finalKey = 0;
+    var finalKey = {h: 0, l: 0};
     var piece = PIECES.EMPTY;
 
     for (sq = 0; sq < BRD_SQ_NUM; ++sq) {
       piece = GameBoard.pieces[sq];
       if (piece != PIECES.EMPTY && piece != SQUARES.OFFBOARD) {
-        finalKey ^= PieceKeys[piece * 120 + sq];
+        finalKey.h ^= PieceKeys[piece * 120 + sq].h;
+        finalKey.l ^= PieceKeys[piece * 120 + sq].l;
       }
     }
 
     if (GameBoard.side == COLOURS.WHITE) {
-      finalKey ^= SideKey;
+      finalKey.h ^= SideKey.h;
+      finalKey.l ^= SideKey.l;
     }
 
     if (GameBoard.enPas != SQUARES.NO_SQ) {
-      finalKey ^= PieceKeys[GameBoard.enPas];
+      finalKey.h ^= PieceKeys[GameBoard.enPas].h;
+      finalKey.l ^= PieceKeys[GameBoard.enPas].l;
     }
 
-    finalKey ^= CastleKeys[GameBoard.castlePerm];
+    finalKey.h ^= CastleKeys[GameBoard.castlePerm].h;
+    finalKey.l ^= CastleKeys[GameBoard.castlePerm].l;
 
     return finalKey;
   }
@@ -1737,9 +1745,11 @@ const betafishEngine = function() {
   }
 
   function ProbePvTable() {
-    var index = GameBoard.posKey % PVENTRIES;
+    var index = Math.abs(GameBoard.posKey.l) % PVENTRIES;
 
-    if (GameBoard.PvTable[index].posKey == GameBoard.posKey) {
+    if (GameBoard.PvTable[index].posKey && 
+        GameBoard.PvTable[index].posKey.h == GameBoard.posKey.h && 
+        GameBoard.PvTable[index].posKey.l == GameBoard.posKey.l) {
       return GameBoard.PvTable[index].move;
     }
 
@@ -1747,8 +1757,8 @@ const betafishEngine = function() {
   }
 
   function StorePvMove(move) {
-    var index = GameBoard.posKey % PVENTRIES;
-    GameBoard.PvTable[index].posKey = GameBoard.posKey;
+    var index = Math.abs(GameBoard.posKey.l) % PVENTRIES;
+    GameBoard.PvTable[index].posKey = {h: GameBoard.posKey.h, l: GameBoard.posKey.l};
     GameBoard.PvTable[index].move = move;
   }
 
@@ -1922,18 +1932,24 @@ const betafishEngine = function() {
     if (InCheck == true) {
       depth++;
     } else {
-      // UPGRADE: NULL MOVE PRUNING (BLUNDER PREVENTION)
+      // UPGRADE: NULL MOVE PRUNING (ELITE SCAN)
       if (depth >= 3 && GameBoard.ply > 0 && GameBoard.material[GameBoard.side] > 5000) {
           GameBoard.side ^= 1;
-          GameBoard.posKey ^= SideKey;
+          GameBoard.posKey.h ^= SideKey.h; GameBoard.posKey.l ^= SideKey.l;
           if (GameBoard.enPas != SQUARES.NO_SQ) {
-              GameBoard.posKey ^= PieceKeys[GameBoard.enPas];
+              GameBoard.posKey.h ^= PieceKeys[GameBoard.enPas].h;
+              GameBoard.posKey.l ^= PieceKeys[GameBoard.enPas].l;
               GameBoard.enPas = SQUARES.NO_SQ;
           }
           var nmpScore = -AlphaBeta(-beta, -beta + 1, depth - 4);
           GameBoard.side ^= 1;
-          GameBoard.posKey ^= SideKey;
+          GameBoard.posKey.h ^= SideKey.h; GameBoard.posKey.l ^= SideKey.l;
           if (nmpScore >= beta) return beta;
+      }
+
+      // UPGRADE: FUTILITY PRUNING (HORIZON EXIT)
+      if (depth <= 2 && alpha < 9000 && EvalPosition() + 300 < alpha) {
+          return Quiescence(alpha, beta);
       }
     }
 
@@ -1973,6 +1989,15 @@ const betafishEngine = function() {
       if (MakeMove(Move) == false) {
         continue;
       }
+
+      // UPGRADE: SEE (STATIC EXCHANGE EVALUATION) - PRUNE BAD TRADES
+      if (depth <= 3 && (Move & MFLAGCAP) !== 0 && !InCheck) {
+          if (GetSEE(toSQ(Move)) < 0) {
+              TakeMove();
+              continue;
+          }
+      }
+
       Legal++;
       
       // UPGRADE: LATE MOVE REDUCTION (SGM TACTICAL REDUCTION)
