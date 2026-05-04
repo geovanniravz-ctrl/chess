@@ -1746,6 +1746,14 @@ const betafishEngine = function() {
         if (entry.flags == TT_ALPHA && score <= alpha) return alpha;
         if (entry.flags == TT_BETA && score >= beta) return beta;
       }
+    }
+    return null;
+  }
+
+  function ProbeTTMove() {
+    var index = (GameBoard.posKey >>> 0) % TT_SIZE;
+    var entry = GameBoard.TT[index];
+    if (entry.posKey == GameBoard.posKey) {
       return entry.move;
     }
     return NOMOVE;
@@ -2011,7 +2019,11 @@ const betafishEngine = function() {
       else return 0;
     }
 
-    StoreTT(BestMove, alpha, depth, TT_EXACT);
+    var score_type = TT_EXACT;
+    if (alpha <= OldAlpha) score_type = TT_ALPHA;
+    else if (alpha >= beta) score_type = TT_BETA;
+
+    StoreTT(BestMove, alpha, depth, score_type);
     return alpha;
   }
 
@@ -2052,7 +2064,7 @@ const betafishEngine = function() {
   }
 
   function SearchPosition() {
-    var bestMove =  ProbeTT(0, -INFINITE, INFINITE);
+    var bestMove = NOMOVE;
     var bestScore = 0;
     var currentDepth = 0;
 
@@ -2068,9 +2080,10 @@ const betafishEngine = function() {
       beta = bestScore + delta;
 
       while (true) {
-        bestScore = AlphaBeta(alpha, beta, currentDepth);
-
+        var result = AlphaBeta(alpha, beta, currentDepth);
         if (SearchController.stop) break;
+        
+        bestScore = result;
 
         if (bestScore <= alpha) {
           alpha -= delta;
@@ -2085,10 +2098,10 @@ const betafishEngine = function() {
 
       if (SearchController.stop) break;
 
-      bestMove = ProbeTT(currentDepth, -INFINITE, INFINITE);
-      if (typeof bestMove === "number") bestMove = bestMove; // Ensure numeric move
-      
-      SearchController.best = bestMove;
+      bestMove = ProbeTTMove();
+      if (bestMove != NOMOVE) {
+        SearchController.best = bestMove;
+      }
     }
     SearchController.thinking = false;
   }
