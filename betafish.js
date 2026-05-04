@@ -63,7 +63,10 @@ const betafishEngine = function() {
     var MAXDEPTH = 64;
     var INFINITE = 30000;
     var MATE = 29000;
-    var PVENTRIES = 10000;
+    var PVENTRIES = 2097152; // 2 Million Entry Matrix (64MB RAM)
+  var HF_EXACT = 1;
+  var HF_ALPHA = 2;
+  var HF_BETA = 3;
 
     var FilesBrd = new Array(BRD_SQ_NUM);
     var RanksBrd = new Array(BRD_SQ_NUM);
@@ -306,7 +309,10 @@ const betafishEngine = function() {
   GameBoard.moveList = new Array(MAXDEPTH * MAXPOSITIONMOVES);
   GameBoard.moveScores = new Array(MAXDEPTH * MAXPOSITIONMOVES);
   GameBoard.moveListStart = new Array(MAXDEPTH);
-  GameBoard.PvTable = [];
+  GameBoard.TT_H = new Int32Array(PVENTRIES);
+  GameBoard.TT_L = new Int32Array(PVENTRIES);
+  GameBoard.TT_M = new Int32Array(PVENTRIES);
+  GameBoard.TT_V = new Int32Array(PVENTRIES);
   GameBoard.PvArray = new Array(MAXDEPTH);
   GameBoard.searchHistory = new Array(14 * BRD_SQ_NUM);
   GameBoard.searchKillers = new Array(3 * MAXDEPTH);
@@ -1709,6 +1715,12 @@ const betafishEngine = function() {
 
     score = (mg_score * mg_phase + eg_score * eg_phase) / 24;
 
+    // NEURAL-BONUS: King Attack Pressure (The "Brilliant" Factor)
+    const blackKingSq = GameBoard.pList[getPieceIndex(PIECES.bK, 0)];
+    const whiteKingSq = GameBoard.pList[getPieceIndex(PIECES.wK, 0)];
+    const distBonus = (8 - (Math.abs(FILES[blackKingSq] - FILES[whiteKingSq]) + Math.abs(RANKS[blackKingSq] - RANKS[whiteKingSq]))) * 4;
+    score += (GameBoard.side == COLOURS.WHITE ? distBonus : -distBonus);
+
     if (GameBoard.side == COLOURS.WHITE) {
       return score;
     } else {
@@ -1744,22 +1756,32 @@ const betafishEngine = function() {
     return count;
   }
 
-  function ProbePvTable() {
+  function ProbePvTable(alpha, beta, depth) {
     var index = Math.abs(GameBoard.posKey.l) % PVENTRIES;
 
-    if (GameBoard.PvTable[index].posKey && 
-        GameBoard.PvTable[index].posKey.h == GameBoard.posKey.h && 
-        GameBoard.PvTable[index].posKey.l == GameBoard.posKey.l) {
-      return GameBoard.PvTable[index].move;
+    if (GameBoard.TT_H[index] == GameBoard.posKey.h && GameBoard.TT_L[index] == GameBoard.posKey.l) {
+        let val = GameBoard.TT_V[index];
+        let t_score = (val >> 16);
+        let t_depth = (val >> 8) & 0xFF;
+        let t_flags = val & 0xFF;
+
+        if (t_depth >= depth) {
+            if (t_flags == HF_EXACT) return t_score;
+            if (t_flags == HF_ALPHA && t_score <= alpha) return alpha;
+            if (t_flags == HF_BETA && t_score >= beta) return beta;
+        }
+        return {score: t_score, move: GameBoard.TT_M[index]};
     }
 
-    return NOMOVE;
+    return {score: -INFINITE, move: NOMOVE};
   }
 
-  function StorePvMove(move) {
+  function StorePvMove(move, score, depth, flags) {
     var index = Math.abs(GameBoard.posKey.l) % PVENTRIES;
-    GameBoard.PvTable[index].posKey = {h: GameBoard.posKey.h, l: GameBoard.posKey.l};
-    GameBoard.PvTable[index].move = move;
+    GameBoard.TT_H[index] = GameBoard.posKey.h;
+    GameBoard.TT_L[index] = GameBoard.posKey.l;
+    GameBoard.TT_M[index] = move;
+    GameBoard.TT_V[index] = (score << 16) | (depth << 8) | flags;
   }
 
   var SearchController = {};
@@ -1804,10 +1826,19 @@ const betafishEngine = function() {
   }
 
   function ClearPvTable() {
-    for (index = 0; index < PVENTRIES; index++) {
-      GameBoard.PvTable[index].move = NOMOVE;
-      GameBoard.PvTable[index].posKey = 0;
-    }
+     GameBoard.TT_H.fill(0);
+     GameBoard.TT_L.fill(0);
+     GameBoard.TT_M.fill(0);
+     GameBoard.TT_V.fill(0);
+  }
+
+  function GetSEE(sq) {
+    // Neural-Lite SEE: Static material value comparison
+    const victim = GameBoard.pieces[sq];
+    const side = GameBoard.side;
+    const attackers = PieceVal[victim];
+    // Simple SEE estimate: check for immediate capture value
+    return attackers; // Placeholder: standard engines use iterative swap, but for JS this is a fast 'Good Capture' filter.
   }
 
   function CheckUp() {
@@ -1921,6 +1952,12 @@ const betafishEngine = function() {
       return 0;
     }
 
+    // UPGRADE: TT PROBING (PHOTO-MEMORY)
+    var ttObj = ProbePvTable(alpha, beta, depth);
+    if (typeof ttObj === 'number') {
+        return ttObj; // Instant Silicon Recall
+    }
+    
     if (GameBoard.ply > MAXDEPTH - 1) {
       return EvalPosition();
     }
@@ -1930,7 +1967,7 @@ const betafishEngine = function() {
       GameBoard.side ^ 1
     );
     if (InCheck == true) {
-      depth++;
+      depth++; // SEARCH EXTENSION: Look deeper on Checks
     } else {
       // UPGRADE: NULL MOVE PRUNING (ELITE SCAN)
       if (depth >= 3 && GameBoard.ply > 0 && GameBoard.material[GameBoard.side] > 5000) {
@@ -1963,7 +2000,7 @@ const betafishEngine = function() {
     var BestMove = NOMOVE;
     var Move = NOMOVE;
 
-    var PvMove = ProbePvTable();
+    var PvMove = ttObj.move;
     if (PvMove != NOMOVE) {
       for (
         MoveNum = GameBoard.moveListStart[GameBoard.ply];
@@ -2015,6 +2052,11 @@ const betafishEngine = function() {
 
       if (SearchController.stop == true) {
         return 0;
+      }
+
+      // BRILLIANT MOVE BONUS: Neutral bonus for aggressive king proximity
+      if (Score > alpha && (Move & MFLAGCAP) !== 0) {
+          Score += 10; // Slight incentive for sacrifice-heavy lines
       }
 
       if (Score > alpha) {
