@@ -63,13 +63,9 @@ const betafishEngine = function() {
     var MAXDEPTH = 64;
     var INFINITE = 30000;
     var MATE = 29000;
-    var TT_SIZE = 0x100000; // 1M entries
-    var TT_EXACT = 1;
-    var TT_ALPHA = 2;
-    var TT_BETA = 3;
-    
-    var FilesBrd = new Array(BRD_SQ_NUM);
+    var PVENTRIES = 10000;
 
+    var FilesBrd = new Array(BRD_SQ_NUM);
     var RanksBrd = new Array(BRD_SQ_NUM);
   }
 
@@ -184,16 +180,12 @@ const betafishEngine = function() {
       });
     }
 
-    for (index = 0; index < TT_SIZE; ++index) {
-      GameBoard.TT.push({
+    for (index = 0; index < PVENTRIES; ++index) {
+      GameBoard.PvTable.push({
         move: NOMOVE,
         posKey: 0,
-        depth: 0,
-        score: 0,
-        flags: 0
       });
     }
-
   }
 
   function init() {
@@ -310,9 +302,8 @@ const betafishEngine = function() {
   GameBoard.moveList = new Array(MAXDEPTH * MAXPOSITIONMOVES);
   GameBoard.moveScores = new Array(MAXDEPTH * MAXPOSITIONMOVES);
   GameBoard.moveListStart = new Array(MAXDEPTH);
-  GameBoard.TT = [];
+  GameBoard.PvTable = [];
   GameBoard.PvArray = new Array(MAXDEPTH);
-
   GameBoard.searchHistory = new Array(14 * BRD_SQ_NUM);
   GameBoard.searchKillers = new Array(3 * MAXDEPTH);
   GameBoard.GameOver = false;
@@ -1724,41 +1715,42 @@ const betafishEngine = function() {
    ============================              
   \****************************/
 
-  function StoreTT(move, score, depth, flags) {
-    var index = (GameBoard.posKey >>> 0) % TT_SIZE;
-    GameBoard.TT[index].posKey = GameBoard.posKey;
-    GameBoard.TT[index].move = move;
-    GameBoard.TT[index].score = score;
-    GameBoard.TT[index].depth = depth;
-    GameBoard.TT[index].flags = flags;
-  }
+  function GetPvLine(depth) {
+    var move = ProbePvTable();
+    var count = 0;
 
-  function ProbeTT(depth, alpha, beta) {
-    var index = (GameBoard.posKey >>> 0) % TT_SIZE;
-    var entry = GameBoard.TT[index];
-    if (entry.posKey == GameBoard.posKey) {
-      if (entry.depth >= depth) {
-        let score = entry.score;
-        if (score > MATE - MAXDEPTH) score -= GameBoard.ply;
-        else if (score < -MATE + MAXDEPTH) score += GameBoard.ply;
-
-        if (entry.flags == TT_EXACT) return score;
-        if (entry.flags == TT_ALPHA && score <= alpha) return alpha;
-        if (entry.flags == TT_BETA && score >= beta) return beta;
+    while (move != NOMOVE && count < depth) {
+      if (MoveExists(move) == true) {
+        MakeMove(move);
+        GameBoard.PvArray[count++] = move;
+      } else {
+        break;
       }
+      move = ProbePvTable();
     }
-    return null;
+
+    while (GameBoard.ply > 0) {
+      TakeMove();
+    }
+
+    return count;
   }
 
-  function ProbeTTMove() {
-    var index = (GameBoard.posKey >>> 0) % TT_SIZE;
-    var entry = GameBoard.TT[index];
-    if (entry.posKey == GameBoard.posKey) {
-      return entry.move;
+  function ProbePvTable() {
+    var index = GameBoard.posKey % PVENTRIES;
+
+    if (GameBoard.PvTable[index].posKey == GameBoard.posKey) {
+      return GameBoard.PvTable[index].move;
     }
+
     return NOMOVE;
   }
 
+  function StorePvMove(move) {
+    var index = GameBoard.posKey % PVENTRIES;
+    GameBoard.PvTable[index].posKey = GameBoard.posKey;
+    GameBoard.PvTable[index].move = move;
+  }
 
   var SearchController = {};
 
@@ -1927,21 +1919,9 @@ const betafishEngine = function() {
       GameBoard.pList[getPieceIndex(Kings[GameBoard.side], 0)],
       GameBoard.side ^ 1
     );
-    
-    // Null Move Pruning (NMP)
-    if (depth >= 3 && !InCheck && GameBoard.ply > 0 && GameBoard.material[GameBoard.side] > 1000) {
-      GameBoard.side ^= 1;
-      GameBoard.posKey ^= SideKey;
-      var score = -AlphaBeta(-beta, -beta + 1, depth - 4);
-      GameBoard.side ^= 1;
-      GameBoard.posKey ^= SideKey;
-      if (score >= beta) return beta;
-    }
-
     if (InCheck == true) {
       depth++;
     }
-
 
     var Score = -INFINITE;
 
@@ -1973,61 +1953,58 @@ const betafishEngine = function() {
       ++MoveNum
     ) {
       PickNextMove(MoveNum);
-      Move = GameBoard.moveList[MoveNum];
-      if (MakeMove(Move) == false) continue;
-      
-      Legal++;
-      
-      // Late Move Reductions (LMR)
-      if (Legal > 4 && depth >= 3 && !InCheck && CAPTURED(Move) == PIECES.EMPTY && PROMOTED(Move) == PIECES.EMPTY) {
-         Score = -AlphaBeta(-alpha - 1, -alpha, depth - 2);
-      } else {
-         Score = alpha + 1;
-      }
 
-      if (Score > alpha) {
-         Score = -AlphaBeta(-beta, -alpha, depth - 1);
+      Move = GameBoard.moveList[MoveNum];
+
+      if (MakeMove(Move) == false) {
+        continue;
       }
+      Legal++;
+      Score = -AlphaBeta(-beta, -alpha, depth - 1);
 
       TakeMove();
 
-      if (SearchController.stop == true) return 0;
-
+      if (SearchController.stop == true) {
+        return 0;
+      }
 
       if (Score > alpha) {
         if (Score >= beta) {
-          if (Legal == 1) SearchController.fhf++;
+          if (Legal == 1) {
+            SearchController.fhf++;
+          }
           SearchController.fh++;
           if ((Move & MFLAGCAP) == 0) {
-            GameBoard.searchKillers[MAXDEPTH + GameBoard.ply] = GameBoard.searchKillers[GameBoard.ply];
+            GameBoard.searchKillers[MAXDEPTH + GameBoard.ply] =
+              GameBoard.searchKillers[GameBoard.ply];
             GameBoard.searchKillers[GameBoard.ply] = Move;
           }
-          StoreTT(Move, beta, depth, TT_BETA);
           return beta;
         }
         if ((Move & MFLAGCAP) == 0) {
-          GameBoard.searchHistory[GameBoard.pieces[fromSQ(Move)] * BRD_SQ_NUM + toSQ(Move)] += depth * depth;
+          GameBoard.searchHistory[
+            GameBoard.pieces[fromSQ(Move)] * BRD_SQ_NUM + toSQ(Move)
+          ] += depth * depth;
         }
         alpha = Score;
         BestMove = Move;
       }
     }
 
-
     if (Legal == 0) {
-      if (InCheck == true) return -MATE + GameBoard.ply;
-      else return 0;
+      if (InCheck == true) {
+        return -MATE + GameBoard.ply;
+      } else {
+        return 0;
+      }
     }
 
-    var score_type = TT_EXACT;
-    if (alpha <= OldAlpha) score_type = TT_ALPHA;
-    else if (alpha >= beta) score_type = TT_BETA;
+    if (alpha != OldAlpha) {
+      StorePvMove(BestMove);
+    }
 
-    StoreTT(BestMove, alpha, depth, score_type);
     return alpha;
   }
-
-
 
   function CheckEndgame() {
     totalMaterial =
@@ -2051,9 +2028,8 @@ const betafishEngine = function() {
       GameBoard.searchKillers[index] = 0;
     }
 
-    for (index = 0; index < TT_SIZE; ++index) GameBoard.TT[index].posKey = 0;
+    ClearPvTable();
     CheckEndgame();
-
 
     GameBoard.ply = 0;
     SearchController.nodes = 0;
@@ -2065,47 +2041,52 @@ const betafishEngine = function() {
 
   function SearchPosition() {
     var bestMove = NOMOVE;
-    var bestScore = 0;
+    var bestScore = -INFINITE;
     var currentDepth = 0;
-
     var line;
     var PvNum;
     var c;
     ClearForSearch();
 
-    for (currentDepth = 1; currentDepth <= SearchController.depth; ++currentDepth) {
-      // Aspiration Windows
-      var delta = 30;
-      alpha = bestScore - delta;
-      beta = bestScore + delta;
+    for (
+      currentDepth = 1;
+      currentDepth <= SearchController.depth;
+      ++currentDepth
+    ) {
+      bestScore = AlphaBeta(-INFINITE, INFINITE, currentDepth);
 
-      while (true) {
-        var result = AlphaBeta(alpha, beta, currentDepth);
-        if (SearchController.stop) break;
-        
-        bestScore = result;
-
-        if (bestScore <= alpha) {
-          alpha -= delta;
-          delta *= 2;
-        } else if (bestScore >= beta) {
-          beta += delta;
-          delta *= 2;
-        } else {
-          break;
-        }
+      if (SearchController.stop) {
+        break;
       }
 
-      if (SearchController.stop) break;
+      bestMove = ProbePvTable();
+      line =
+        "D:" +
+        currentDepth +
+        " Best:" +
+        PrMove(bestMove) +
+        " Score:" +
+        bestScore +
+        " nodes:" +
+        SearchController.nodes;
 
-      bestMove = ProbeTTMove();
-      if (bestMove != NOMOVE) {
-        SearchController.best = bestMove;
+      PvNum = GetPvLine(currentDepth);
+      line += " Pv:";
+      for (c = 0; c < PvNum; ++c) {
+        line += " " + PrMove(GameBoard.PvArray[c]);
       }
+      if (currentDepth != 1) {
+        line +=
+          " Ordering:" +
+          ((SearchController.fhf / SearchController.fh) * 100).toFixed(2) +
+          "%";
+      }
+      // console.log(line);
     }
+
+    SearchController.best = bestMove;
     SearchController.thinking = false;
   }
-
 
   function getBestMove() {
     SearchController.depth = MAXDEPTH;
