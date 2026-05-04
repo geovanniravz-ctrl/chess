@@ -1921,6 +1921,20 @@ const betafishEngine = function() {
     );
     if (InCheck == true) {
       depth++;
+    } else {
+      // UPGRADE: NULL MOVE PRUNING (BLUNDER PREVENTION)
+      if (depth >= 3 && GameBoard.ply > 0 && GameBoard.material[GameBoard.side] > 5000) {
+          GameBoard.side ^= 1;
+          GameBoard.posKey ^= SideKey;
+          if (GameBoard.enPas != SQUARES.NO_SQ) {
+              GameBoard.posKey ^= PieceKeys[GameBoard.enPas];
+              GameBoard.enPas = SQUARES.NO_SQ;
+          }
+          var nmpScore = -AlphaBeta(-beta, -beta + 1, depth - 4);
+          GameBoard.side ^= 1;
+          GameBoard.posKey ^= SideKey;
+          if (nmpScore >= beta) return beta;
+      }
     }
 
     var Score = -INFINITE;
@@ -1960,7 +1974,17 @@ const betafishEngine = function() {
         continue;
       }
       Legal++;
-      Score = -AlphaBeta(-beta, -alpha, depth - 1);
+      
+      // UPGRADE: LATE MOVE REDUCTION (SGM TACTICAL REDUCTION)
+      if (Legal > 4 && depth >= 3 && !InCheck && (Move & MFLAGCAP) == 0 && (Move & MFLAGPROM) == 0) {
+          Score = -AlphaBeta(-alpha - 1, -alpha, depth - 2); 
+      } else {
+          Score = alpha + 1;
+      }
+
+      if (Score > alpha) {
+          Score = -AlphaBeta(-beta, -alpha, depth - 1);
+      }
 
       TakeMove();
 
@@ -2048,12 +2072,25 @@ const betafishEngine = function() {
     var c;
     ClearForSearch();
 
+    let alpha = -INFINITE;
+    let beta = INFINITE;
+
     for (
       currentDepth = 1;
       currentDepth <= SearchController.depth;
       ++currentDepth
     ) {
-      bestScore = AlphaBeta(-INFINITE, INFINITE, currentDepth);
+      bestScore = AlphaBeta(alpha, beta, currentDepth);
+
+      if (bestScore <= alpha || bestScore >= beta) {
+          alpha = -INFINITE;
+          beta = INFINITE;
+          bestScore = AlphaBeta(alpha, beta, currentDepth);
+      }
+      
+      // UPGRADE: ASPIRATION WINDOWS (PULLS SEARCH FOCUS)
+      alpha = bestScore - 50;
+      beta = bestScore + 50;
 
       if (SearchController.stop) {
         break;
